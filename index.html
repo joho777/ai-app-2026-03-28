@@ -1,0 +1,2028 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DotClaude Lab — Inspect, Simulate, and Share Agent Workspaces</title>
+  <meta name="description" content="An interactive, single-file playground inspired by the Anatomy of the .claude/ folder trend. Explore a synthetic .claude workspace, simulate agent runs, and generate reproducible bundles." />
+  <style>
+    :root{
+      --bg:#0a0e17;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --stroke: rgba(255,255,255,.12);
+      --stroke2: rgba(255,255,255,.18);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --muted2: rgba(255,255,255,.52);
+      --accent: #7c5cff;
+      --accent2:#19d3ff;
+      --good:#4be38a;
+      --warn:#ffcc66;
+      --bad:#ff5577;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --glow: 0 0 0 1px rgba(124,92,255,.18), 0 0 34px rgba(124,92,255,.16);
+      --radius: 18px;
+      --radius2: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    *{ box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(124,92,255,.28), transparent 58%),
+        radial-gradient(900px 700px at 82% 14%, rgba(25,211,255,.22), transparent 55%),
+        radial-gradient(1000px 900px at 50% 120%, rgba(75,227,138,.14), transparent 55%),
+        linear-gradient(180deg, #070b12 0%, var(--bg) 35%, #070a10 100%);
+      overflow-x:hidden;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+
+    .wrap{
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    header{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 16px;
+    }
+
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      min-width: 260px;
+    }
+
+    .logo{
+      width:44px;height:44px;border-radius: 14px;
+      background:
+        radial-gradient(12px 12px at 25% 28%, rgba(255,255,255,.8), transparent 60%),
+        linear-gradient(135deg, rgba(124,92,255,.95), rgba(25,211,255,.85));
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:before{
+      content:"";
+      position:absolute; inset:-20px;
+      background: conic-gradient(from 180deg, rgba(255,255,255,.0), rgba(255,255,255,.38), rgba(255,255,255,0));
+      transform: rotate(18deg);
+      opacity:.4;
+      animation: shimmer 4.2s linear infinite;
+    }
+    @keyframes shimmer{
+      0%{ transform: translateX(-25%) rotate(18deg); }
+      100%{ transform: translateX(25%) rotate(18deg); }
+    }
+
+    .brand h1{
+      font-size: 16px;
+      line-height: 1.15;
+      margin:0;
+      font-weight: 740;
+      letter-spacing:.2px;
+    }
+    .brand .sub{ font-size: 12px; color: var(--muted); margin-top:2px; }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      color: var(--muted);
+      font-size: 12px;
+      user-select:none;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 650;
+      letter-spacing: .15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px);
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.08); }
+    .btn:active{ transform: translateY(0px); }
+    .btn.primary{
+      border-color: rgba(124,92,255,.35);
+      background: linear-gradient(135deg, rgba(124,92,255,.65), rgba(25,211,255,.28));
+      box-shadow: var(--glow), 0 18px 60px rgba(0,0,0,.32);
+    }
+    .btn.danger{ border-color: rgba(255,85,119,.4); background: rgba(255,85,119,.12); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ align-items:flex-start; flex-direction:column; }
+      .brand{ min-width:unset; }
+      .top-actions{ justify-content:flex-start; }
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow:hidden;
+    }
+
+    .card .hd{
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title{
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing:.2px;
+      margin:0;
+    }
+    .hint{
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .card .bd{ padding: 14px; }
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .tab{
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+      transition: all .12s ease;
+    }
+    .tab.active{
+      color: var(--text);
+      border-color: rgba(124,92,255,.35);
+      background: linear-gradient(135deg, rgba(124,92,255,.35), rgba(25,211,255,.16));
+      box-shadow: 0 0 0 1px rgba(124,92,255,.12), 0 18px 50px rgba(0,0,0,.25);
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .row.between{ justify-content:space-between; }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], textarea, select{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline:none;
+      font-family: var(--sans);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+    }
+
+    textarea{ min-height: 90px; resize: vertical; }
+
+    .small{ font-size: 12px; color: var(--muted2); }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 680px){
+      .split{ grid-template-columns: 1fr; }
+    }
+
+    .tree{
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.4;
+      user-select:none;
+    }
+
+    .node{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      margin-bottom: 8px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .node:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.06); }
+    .node.active{ border-color: rgba(124,92,255,.35); background: rgba(124,92,255,.12); }
+
+    .badge{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .dot{ width:8px; height:8px; border-radius:50%; background: rgba(255,255,255,.25); }
+    .dot.good{ background: rgba(75,227,138,.95); box-shadow: 0 0 0 3px rgba(75,227,138,.14); }
+    .dot.warn{ background: rgba(255,204,102,.95); box-shadow: 0 0 0 3px rgba(255,204,102,.12); }
+    .dot.bad{ background: rgba(255,85,119,.95); box-shadow: 0 0 0 3px rgba(255,85,119,.12); }
+
+    .editor{
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+    }
+
+    .editor .bar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    }
+
+    .file-path{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space:nowrap;
+      max-width: 68ch;
+    }
+
+    .code{
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(255,255,255,.9);
+      white-space: pre;
+      overflow:auto;
+      max-height: 420px;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 680px){
+      .kpi{ grid-template-columns: 1fr; }
+    }
+
+    .kpi .box{
+      border-radius: 16px;
+      padding: 12px 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(300px 120px at 20% 10%, rgba(124,92,255,.16), transparent 60%),
+        radial-gradient(280px 160px at 80% 15%, rgba(25,211,255,.12), transparent 55%),
+        rgba(255,255,255,.04);
+    }
+
+    .kpi .num{
+      font-size: 18px;
+      font-weight: 820;
+      letter-spacing: .2px;
+    }
+
+    .kpi .lbl{ font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .timeline{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .event{
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      padding: 12px;
+    }
+
+    .event .top{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .event .name{ font-weight: 780; font-size: 13px; }
+    .event .meta{ color: var(--muted); font-size: 12px; font-family: var(--mono); }
+
+    .event .body{ margin-top: 8px; color: rgba(255,255,255,.86); font-size: 12px; line-height: 1.45; }
+
+    .mini-bar{
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.08);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.10);
+      margin-top: 10px;
+    }
+    .mini-bar > i{
+      display:block;
+      height: 100%;
+      width: 20%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(124,92,255,.9), rgba(25,211,255,.8));
+      box-shadow: 0 0 18px rgba(124,92,255,.25);
+    }
+
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(10,14,23,.70);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      padding: 10px 14px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      color: rgba(255,255,255,.9);
+      font-size: 12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 50;
+    }
+    .toast.show{ opacity:1; transform: translateX(-50%) translateY(-2px); }
+
+    .footer{
+      margin-top: 16px;
+      color: var(--muted2);
+      font-size: 12px;
+      display:flex;
+      gap: 12px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      opacity:.95;
+    }
+
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--muted);
+    }
+
+    /* Modal */
+    .modal{
+      position: fixed;
+      inset: 0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      background: rgba(0,0,0,.52);
+      backdrop-filter: blur(8px);
+      z-index: 60;
+    }
+    .modal.show{ display:flex; }
+
+    .modal .sheet{
+      width: min(980px, 100%);
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.16);
+      background:
+        radial-gradient(900px 320px at 20% 10%, rgba(124,92,255,.22), transparent 60%),
+        radial-gradient(800px 300px at 86% 14%, rgba(25,211,255,.18), transparent 55%),
+        rgba(10,14,23,.88);
+      box-shadow: 0 30px 120px rgba(0,0,0,.68);
+      overflow:hidden;
+    }
+    .sheet .hd{ padding: 14px 16px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap: 12px; border-bottom: 1px solid rgba(255,255,255,.10); }
+    .sheet .bd{ padding: 14px 16px 16px; }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.82);
+      font-size: 12px;
+      user-select:none;
+    }
+
+    .muted-link{ color: var(--muted); text-decoration: underline; text-decoration-color: rgba(255,255,255,.22); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>DotClaude Lab</h1>
+          <div class="sub">Inspect, simulate, and share an agent workspace inspired by the Anatomy of the .claude/ folder trend.</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="pill" id="trendPill">Trend: <span id="trendTitle" style="color:rgba(255,255,255,.86);margin-left:4px">Anatomy of the .claude/ folder</span></div>
+        <button class="btn" id="btnShare">Share snapshot</button>
+        <button class="btn" id="btnExport">Export bundle</button>
+        <button class="btn primary" id="btnRun">Run simulation</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card" aria-label="Workspace Explorer">
+        <div class="hd">
+          <div>
+            <div class="title">Workspace Explorer</div>
+            <div class="hint">Click any node to inspect. Use presets to emulate different agent behavior.</div>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Explorer tabs">
+            <div class="tab active" role="tab" data-tab="tree">Tree</div>
+            <div class="tab" role="tab" data-tab="preset">Preset</div>
+            <div class="tab" role="tab" data-tab="rules">Rules</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="panel" data-panel="tree">
+            <div class="row between" style="margin-bottom:10px">
+              <div class="small">Synthetic <span class="kbd">.claude/</span> workspace</div>
+              <button class="btn" id="btnNewFile" title="Add a new file">New file</button>
+            </div>
+            <div id="tree" class="tree"></div>
+            <div class="small" style="margin-top:10px">
+              Tip: <span class="kbd">/</span> focuses search, <span class="kbd">R</span> runs, <span class="kbd">S</span> shares.
+            </div>
+          </div>
+
+          <div class="panel" data-panel="preset" style="display:none">
+            <div class="split">
+              <div>
+                <label>Agent preset</label>
+                <select id="presetSelect">
+                  <option value="balanced">Balanced (recommended)</option>
+                  <option value="speed">Speed-runner (short context)</option>
+                  <option value="compliance">Compliance-first (strict hygiene)</option>
+                  <option value="research">Researcher (lots of artifacts)</option>
+                  <option value="chaos">Chaos mode (messy workspace)</option>
+                </select>
+                <div class="small" style="margin-top:8px" id="presetDesc"></div>
+              </div>
+              <div>
+                <label>Workspace size</label>
+                <select id="sizeSelect">
+                  <option value="tiny">Tiny (6–10 files)</option>
+                  <option value="small">Small (12–18 files)</option>
+                  <option value="medium" selected>Medium (20–28 files)</option>
+                  <option value="large">Large (32–44 files)</option>
+                </select>
+                <div class="small" style="margin-top:8px">This changes the synthetic file tree and the run timeline.</div>
+              </div>
+            </div>
+
+            <div class="split" style="margin-top:12px">
+              <div>
+                <label>Project name</label>
+                <input id="projectName" type="text" value="viral-agent-app" />
+              </div>
+              <div>
+                <label>Run objective</label>
+                <input id="objective" type="text" value="Build a single-file web app and package it for sharing" />
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <label>System note (simulated)</label>
+              <textarea id="systemNote">You are an autonomous agent. Keep artifacts in .claude/. Always write a concise summary. Avoid storing secrets.</textarea>
+              <div class="small">Use this to see how workspace artifacts change when the agent gets different guidance.</div>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="rules" style="display:none">
+            <div class="split">
+              <div>
+                <label>Retention rule</label>
+                <select id="retentionRule">
+                  <option value="keep_all">Keep everything</option>
+                  <option value="keep_last">Keep last N runs</option>
+                  <option value="keep_by_size">Keep within size budget</option>
+                </select>
+              </div>
+              <div>
+                <label>Retention parameter</label>
+                <input id="retentionParam" type="text" value="7" />
+                <div class="small">For <span class="kbd">Keep last N</span>: N runs. For <span class="kbd">Size budget</span>: megabytes.</div>
+              </div>
+            </div>
+            <div class="split" style="margin-top:12px">
+              <div>
+                <label>Privacy mode</label>
+                <select id="privacyMode">
+                  <option value="normal">Normal</option>
+                  <option value="redact">Redact emails/keys</option>
+                  <option value="paranoid">Paranoid (minimize logs)</option>
+                </select>
+              </div>
+              <div>
+                <label>Share bundle includes</label>
+                <select id="bundleIncludes">
+                  <option value="summary_only">Summary only</option>
+                  <option value="essentials" selected>Essentials (config + summary + key files)</option>
+                  <option value="full">Full workspace</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top:12px" class="row">
+              <button class="btn" id="btnApplyRules">Apply</button>
+              <div class="small" id="rulesStatus">Change rules and apply to see the simulated cleanup effect.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-label="Inspector and Simulator">
+        <div class="hd">
+          <div>
+            <div class="title">Inspector and Simulator</div>
+            <div class="hint">Preview file contents, run an agent simulation, and generate a reproducible bundle.</div>
+          </div>
+          <div class="row" style="justify-content:flex-end">
+            <span class="chip" id="runChip">No run yet</span>
+            <button class="btn" id="btnOpenAbout">About</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="kpi" style="margin-bottom: 12px">
+            <div class="box">
+              <div class="num" id="kpiFiles">0</div>
+              <div class="lbl">Files in workspace</div>
+            </div>
+            <div class="box">
+              <div class="num" id="kpiTokens">0</div>
+              <div class="lbl">Estimated tokens stored</div>
+            </div>
+            <div class="box">
+              <div class="num" id="kpiRisk">Low</div>
+              <div class="lbl">Leakage risk score</div>
+            </div>
+          </div>
+
+          <div class="editor" style="margin-bottom: 12px">
+            <div class="bar">
+              <div class="file-path" id="filePath">Select a file…</div>
+              <div class="row">
+                <button class="btn" id="btnCopy">Copy</button>
+                <button class="btn" id="btnMutate">Mutate</button>
+              </div>
+            </div>
+            <div class="code" id="codeView" aria-label="File contents"></div>
+          </div>
+
+          <div class="split">
+            <div class="card" style="border-radius: 18px;">
+              <div class="hd">
+                <div>
+                  <div class="title">Run timeline</div>
+                  <div class="hint">Each run produces artifacts typically found under <span class="kbd">.claude/</span>.</div>
+                </div>
+                <div class="row">
+                  <button class="btn" id="btnAddEvent">Add event</button>
+                  <button class="btn danger" id="btnClearEvents">Clear</button>
+                </div>
+              </div>
+              <div class="bd">
+                <div class="timeline" id="timeline"></div>
+              </div>
+            </div>
+
+            <div class="card" style="border-radius: 18px;">
+              <div class="hd">
+                <div>
+                  <div class="title">Bundle preview</div>
+                  <div class="hint">A shareable snapshot: summary, config, and selected artifacts.</div>
+                </div>
+                <div class="row">
+                  <button class="btn" id="btnGenerateBundle">Generate</button>
+                  <button class="btn" id="btnDownload">Download</button>
+                </div>
+              </div>
+              <div class="bd">
+                <div class="editor">
+                  <div class="bar">
+                    <div class="file-path">bundle.json</div>
+                    <div class="row">
+                      <span class="badge" id="bundleSize">0 B</span>
+                      <span class="badge" id="bundleHash">hash: —</span>
+                    </div>
+                  </div>
+                  <div class="code" id="bundleView"></div>
+                </div>
+                <div class="small" style="margin-top:10px">
+                  The share feature encodes a compressed snapshot in the URL hash to reproduce the same workspace on another machine.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div>
+              Built as a single-file demo. Keyboard: <span class="kbd">R</span> run, <span class="kbd">E</span> export, <span class="kbd">S</span> share, <span class="kbd">?</span> about.
+            </div>
+            <div>
+              Inspired by the trend article: <a class="muted-link" href="https://blog.dailydoseofds.com/p/anatomy-of-the-claude-folder" target="_blank" rel="noreferrer">Anatomy of the .claude/ folder</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg">Copied</span><span class="kbd" id="toastKbd">OK</span></div>
+
+  <div class="modal" id="modal">
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="About DotClaude Lab">
+      <div class="hd">
+        <div>
+          <div class="title" style="font-size:14px">About DotClaude Lab</div>
+          <div class="hint">A hands-on model for how agent workspaces become shareable, reproducible, and safe to keep.</div>
+        </div>
+        <button class="btn" id="btnCloseModal">Close</button>
+      </div>
+      <div class="bd">
+        <div class="split">
+          <div>
+            <div class="title" style="margin-bottom:6px">What is this?</div>
+            <div class="hint" style="line-height:1.5">
+              Many AI agents persist state across runs (plans, tool outputs, summaries, configs). Some systems store those artifacts in a hidden folder. This app lets you explore a synthetic <span class="kbd">.claude/</span> structure, simulate runs, and build a shareable bundle.
+            </div>
+            <div style="margin-top:12px" class="title">Try these experiments</div>
+            <ul class="hint" style="line-height:1.55; margin-top:6px; padding-left: 18px">
+              <li>Switch presets and see how the number/type of artifacts changes.</li>
+              <li>Enable <span class="kbd">Redact</span> privacy and regenerate the bundle.</li>
+              <li>Pick <span class="kbd">Keep within size budget</span> and apply retention.</li>
+              <li>Create a new file with a fake secret and watch the risk score increase.</li>
+              <li>Share a snapshot link and open it in another tab to reproduce the workspace.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="title" style="margin-bottom:6px">How risk is estimated</div>
+            <div class="hint" style="line-height:1.55">
+              This demo computes a "leakage risk" score from heuristics: how many logs you keep, whether you store prompts/tool outputs, and whether content looks like credentials or personal data.
+            </div>
+            <div style="margin-top:12px" class="title">No network, no uploads</div>
+            <div class="hint" style="line-height:1.55">
+              Everything runs locally in your browser. Exported bundles are generated on-device.
+            </div>
+            <div style="margin-top:12px" class="row" >
+              <span class="chip"><span class="dot good"></span>Safe-by-default</span>
+              <span class="chip"><span class="dot warn"></span>Composable</span>
+              <span class="chip"><span class="dot bad"></span>Teachable</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px" class="small">
+          Note: This is an educational simulator, not the real folder format of any product.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // DotClaude Lab — Single-file app
+  // Inspired by the trend "Anatomy of the .claude/ folder".
+
+  (function(){
+    "use strict";
+
+    // ---------- Utilities ----------
+
+    const $ = (sel, el=document) => el.querySelector(sel);
+    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+    function uid(){ return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2); }
+
+    function formatBytes(bytes){
+      const units = ["B","KB","MB","GB"];
+      let b = Math.max(0, bytes);
+      let i = 0;
+      while(b >= 1024 && i < units.length-1){ b /= 1024; i++; }
+      const fixed = i === 0 ? 0 : (b < 10 ? 2 : 1);
+      return `${b.toFixed(fixed)} ${units[i]}`;
+    }
+
+    function nowIso(){
+      const d = new Date();
+      const pad = n => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function toast(msg, kbd="OK"){
+      const t = $("#toast");
+      $("#toastMsg").textContent = msg;
+      $("#toastKbd").textContent = kbd;
+      t.classList.add("show");
+      clearTimeout(toast._tm);
+      toast._tm = setTimeout(()=>t.classList.remove("show"), 1600);
+    }
+
+    function copyText(str){
+      return navigator.clipboard?.writeText(str).then(()=>true).catch(()=>false);
+    }
+
+    // Simple stable hash for display (FNV-1a)
+    function fnv1a(str){
+      let h = 0x811c9dc5;
+      for(let i=0;i<str.length;i++){
+        h ^= str.charCodeAt(i);
+        h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0;
+      }
+      return ("0000000" + h.toString(16)).slice(-8);
+    }
+
+    // Compression: use built-in compression stream if available, otherwise fallback to base64 JSON.
+    async function encodeState(obj){
+      const json = JSON.stringify(obj);
+      const enc = new TextEncoder();
+      const bytes = enc.encode(json);
+
+      if("CompressionStream" in window){
+        const cs = new CompressionStream("gzip");
+        const blob = new Blob([bytes]).stream().pipeThrough(cs);
+        const gz = await new Response(blob).arrayBuffer();
+        return "gz:" + base64FromBytes(new Uint8Array(gz));
+      }
+      return "b64:" + btoa(unescape(encodeURIComponent(json)));
+    }
+
+    async function decodeState(payload){
+      if(!payload) return null;
+      try{
+        if(payload.startsWith("gz:")){
+          const raw = bytesFromBase64(payload.slice(3));
+          const ds = new DecompressionStream("gzip");
+          const stream = new Blob([raw]).stream().pipeThrough(ds);
+          const out = await new Response(stream).arrayBuffer();
+          const txt = new TextDecoder().decode(out);
+          return JSON.parse(txt);
+        }
+        if(payload.startsWith("b64:")){
+          const txt = decodeURIComponent(escape(atob(payload.slice(4))));
+          return JSON.parse(txt);
+        }
+        // legacy
+        const txt = decodeURIComponent(escape(atob(payload)));
+        return JSON.parse(txt);
+      }catch(err){
+        console.warn("Failed decode", err);
+        return null;
+      }
+    }
+
+    function base64FromBytes(u8){
+      let s = "";
+      const chunk = 0x8000;
+      for(let i=0;i<u8.length;i+=chunk){
+        s += String.fromCharCode.apply(null, u8.subarray(i, i+chunk));
+      }
+      return btoa(s);
+    }
+
+    function bytesFromBase64(b64){
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+      return u8;
+    }
+
+    // ---------- Domain model ----------
+
+    // Workspace is a list of files in a hidden folder plus project root.
+    // Each file: {id, path, kind, bytes, tokens, content, tags[], updatedAt, riskHints[]}
+
+    const PRESETS = {
+      balanced: {
+        name: "Balanced",
+        desc: "Keeps a few useful artifacts: plan, run summaries, minimal logs, and a share bundle.",
+        knobs: { logVerbosity: 0.45, keepToolOutputs: 0.55, keepPrompts: 0.35, hygiene: 0.65, curiosity: 0.55 }
+      },
+      speed: {
+        name: "Speed-runner",
+        desc: "Prioritizes output speed. Stores fewer artifacts but may have inconsistent structure.",
+        knobs: { logVerbosity: 0.25, keepToolOutputs: 0.25, keepPrompts: 0.12, hygiene: 0.35, curiosity: 0.35 }
+      },
+      compliance: {
+        name: "Compliance-first",
+        desc: "Aggressive redaction, structured summaries, strict retention. Lower leakage risk.",
+        knobs: { logVerbosity: 0.35, keepToolOutputs: 0.15, keepPrompts: 0.10, hygiene: 0.92, curiosity: 0.40 }
+      },
+      research: {
+        name: "Researcher",
+        desc: "Collects many intermediate artifacts: citations, notes, tool outputs, comparison tables.",
+        knobs: { logVerbosity: 0.70, keepToolOutputs: 0.78, keepPrompts: 0.48, hygiene: 0.55, curiosity: 0.88 }
+      },
+      chaos: {
+        name: "Chaos mode",
+        desc: "Everything everywhere. Lots of logs, duplicated files, and risky content patterns.",
+        knobs: { logVerbosity: 0.92, keepToolOutputs: 0.88, keepPrompts: 0.72, hygiene: 0.18, curiosity: 0.70 }
+      }
+    };
+
+    const SIZE_PRESETS = {
+      tiny: { files: [6,10], runs: 2 },
+      small: { files: [12,18], runs: 3 },
+      medium: { files: [20,28], runs: 4 },
+      large: { files: [32,44], runs: 5 }
+    };
+
+    const DEFAULT_RULES = {
+      retentionRule: "keep_last",
+      retentionParam: "7",
+      privacyMode: "normal",
+      bundleIncludes: "essentials"
+    };
+
+    // Heuristic detectors for risky strings
+    const RISK_PATTERNS = [
+      { re: /AIza[0-9A-Za-z\-_]{35}/g, label: "Looks like a Google API key" },
+      { re: /sk-[a-zA-Z0-9]{20,}/g, label: "Looks like an API key" },
+      { re: /-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----/g, label: "Looks like a private key" },
+      { re: /\b\d{3}-\d{2}-\d{4}\b/g, label: "Looks like an SSN" },
+      { re: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, label: "Email address" },
+      { re: /\b(?:\d[ -]*?){13,16}\b/g, label: "Looks like a card number" },
+      { re: /\bAKIA[0-9A-Z]{16}\b/g, label: "Looks like an AWS access key" }
+    ];
+
+    function estimateTokens(text){
+      // Rough heuristic: average 4 chars per token in English, 3.5 in code.
+      const t = text.length;
+      const ratio = /[{}();=<>]/.test(text) ? 3.4 : 4.0;
+      return Math.ceil(t / ratio);
+    }
+
+    function computeRisk(file){
+      const hints = [];
+      let score = 0;
+      const text = file.content || "";
+      for(const p of RISK_PATTERNS){
+        const m = text.match(p.re);
+        if(m && m.length){
+          hints.push(`${p.label} (x${m.length})`);
+          score += Math.min(20, 6 + m.length*3);
+        }
+      }
+      if(file.kind === "tool-output") score += 7;
+      if(file.kind === "prompt") score += 6;
+      if(/secrets|token|password/i.test(file.path)) score += 8;
+      if(file.path.includes("logs")) score += 5;
+      if(text.length > 8000) score += 6;
+      if(text.length > 20000) score += 9;
+      return { score: clamp(score, 0, 100), hints };
+    }
+
+    function redactText(text){
+      let out = text;
+      // Basic redactions: emails and obvious key patterns
+      out = out.replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]");
+      out = out.replace(/sk-[a-zA-Z0-9]{20,}/g, "[REDACTED_KEY]");
+      out = out.replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_ACCESS_KEY]");
+      out = out.replace(/-----BEGIN (RSA|OPENSSH) PRIVATE KEY-----[\s\S]*?-----END (RSA|OPENSSH) PRIVATE KEY-----/g, "[REDACTED_PRIVATE_KEY]");
+      out = out.replace(/AIza[0-9A-Za-z\-_]{35}/g, "[REDACTED_GOOGLE_KEY]");
+      return out;
+    }
+
+    // ---------- App state ----------
+
+    const state = {
+      meta: { version: 1, createdAt: nowIso(), lastRunAt: null },
+      trend: {
+        title: "Anatomy of the .claude/ folder",
+        url: "https://blog.dailydoseofds.com/p/anatomy-of-the-claude-folder"
+      },
+      ui: {
+        activeTab: "tree",
+        selectedFileId: null,
+        lastBundle: null
+      },
+      config: {
+        preset: "balanced",
+        size: "medium",
+        projectName: "viral-agent-app",
+        objective: "Build a single-file web app and package it for sharing",
+        systemNote: "You are an autonomous agent. Keep artifacts in .claude/. Always write a concise summary. Avoid storing secrets.",
+        rules: { ...DEFAULT_RULES }
+      },
+      workspace: {
+        files: [],
+        runs: []
+      },
+      simulation: {
+        events: []
+      }
+    };
+
+    // ---------- Workspace generators ----------
+
+    function fileTemplate(path, kind, content){
+      const bytes = new Blob([content]).size;
+      const tokens = estimateTokens(content);
+      const base = { id: uid(), path, kind, content, bytes, tokens, tags:[], updatedAt: nowIso() };
+      const r = computeRisk(base);
+      base.riskScore = r.score;
+      base.riskHints = r.hints;
+      return base;
+    }
+
+    function makeBaseWorkspace(){
+      const cfg = state.config;
+      const preset = PRESETS[cfg.preset];
+      const size = SIZE_PRESETS[cfg.size];
+      const targetFiles = randInt(size.files[0], size.files[1]);
+
+      const files = [];
+
+      // Core project files
+      files.push(fileTemplate(`${cfg.projectName}/README.md`, "project", `# ${cfg.projectName}\n\nObjective: ${cfg.objective}\n\nGenerated: ${nowIso()}\n`));
+      files.push(fileTemplate(`${cfg.projectName}/index.html`, "project", makeTinyHtml(cfg.projectName)));
+      files.push(fileTemplate(`${cfg.projectName}/notes.md`, "project", `## Notes\n- Theme: dark glassmorphism\n- Trend inspiration: hidden agent workspace folders\n- Next: add export/share UI\n`));
+
+      // Hidden folder structure (synthetic)
+      files.push(fileTemplate(`.claude/config.json`, "config", JSON.stringify({
+        project: cfg.projectName,
+        objective: cfg.objective,
+        preset: cfg.preset,
+        createdAt: state.meta.createdAt,
+        rules: cfg.rules
+      }, null, 2)));
+
+      files.push(fileTemplate(`.claude/README.md`, "meta", `# .claude\n\nThis folder contains synthetic agent artifacts for DotClaude Lab.\n\n- runs/: per-run summaries and logs\n- memory/: sticky notes that survive across runs\n- cache/: derived artifacts\n- share/: bundles and snapshots\n`));
+
+      files.push(fileTemplate(`.claude/memory/sticky.md`, "memory", `# Sticky memory\n\n- Keep the app single-file when possible.\n- Prefer reproducible exports.\n- Avoid storing secrets.\n\nPreset: ${preset.name}\n`));
+
+      // Create some initial run artifacts
+      const initialRuns = size.runs;
+      for(let i=1;i<=initialRuns;i++){
+        files.push(fileTemplate(`.claude/runs/run_${String(i).padStart(3,"0")}/summary.md`, "summary", makeRunSummary(i, preset, cfg)));
+        if(Math.random() < preset.knobs.keepToolOutputs){
+          files.push(fileTemplate(`.claude/runs/run_${String(i).padStart(3,"0")}/tool_output.json`, "tool-output", makeToolOutput(i)));
+        }
+        if(Math.random() < preset.knobs.keepPrompts){
+          files.push(fileTemplate(`.claude/runs/run_${String(i).padStart(3,"0")}/prompt.txt`, "prompt", makePrompt(i, cfg)));
+        }
+        if(Math.random() < preset.knobs.logVerbosity){
+          files.push(fileTemplate(`.claude/runs/run_${String(i).padStart(3,"0")}/logs.txt`, "log", makeLogs(i, preset)));
+        }
+      }
+
+      // Add extra artifacts to reach target size
+      const fillers = [
+        ()=>fileTemplate(`.claude/cache/tokens_estimate.json`, "cache", JSON.stringify({ method:"chars_per_token", approx: 3.8 }, null, 2)),
+        ()=>fileTemplate(`.claude/cache/ui_state.json`, "cache", JSON.stringify({ activeTab: state.ui.activeTab }, null, 2)),
+        ()=>fileTemplate(`.claude/memory/decisions.md`, "memory", `# Decisions\n\n- Use URL hash for share state\n- Prefer gzip if available\n- Provide retention rules simulator\n`),
+        ()=>fileTemplate(`.claude/share/latest_bundle.json`, "share", JSON.stringify({ note:"Generate from UI", createdAt: nowIso() }, null, 2)),
+        ()=>fileTemplate(`.claude/experiments/retention_matrix.csv`, "research", "rule,kept_runs\nkeep_all,all\nkeep_last,7\nkeep_by_size,10MB\n"),
+        ()=>fileTemplate(`.claude/notes/ideas.md`, "research", "- Add risk heatmap\n- Add diff view\n- Add event injection\n"),
+        ()=>fileTemplate(`.claude/notes/todo.md`, "meta", "- polish UI\n- validate bundle\n- add import/export\n"),
+      ];
+
+      while(files.length < targetFiles){
+        const f = fillers[randInt(0, fillers.length-1)]();
+        // Avoid exact path duplicates
+        if(!files.some(x=>x.path===f.path)) files.push(f);
+      }
+
+      if(cfg.preset === "chaos"){
+        // Inject messy risky artifacts
+        files.push(fileTemplate(`.claude/secrets/maybe_key.txt`, "log", `TEMP=sk-${uid()}${uid()}\nDO_NOT_COMMIT=true\n`));
+        files.push(fileTemplate(`.claude/runs/run_999/logs.txt`, "log", makeLogs(999, PRESETS.chaos) + "\nuser email: test.user@example.com\n"));
+      }
+
+      return files;
+    }
+
+    function makeTinyHtml(name){
+      return `<!doctype html>\n<html>\n<head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\">\n<title>${name}</title>\n</head>\n<body>\n<h1>${name}</h1>\n<p>Placeholder. Generated by DotClaude Lab simulation.</p>\n</body>\n</html>\n`;
+    }
+
+    function makeRunSummary(i, preset, cfg){
+      const bullets = [
+        "Planned the app structure and UI skeleton",
+        "Implemented workspace explorer and inspector",
+        "Added risk heuristics + privacy modes",
+        "Generated share bundle and URL snapshot",
+        "Polished glassmorphism styling",
+        "Added keyboard shortcuts and toasts",
+        "Added retention simulator and cleanup preview"
+      ];
+      const pick = shuffle(bullets).slice(0, randInt(3, 5));
+      return `# Run ${i} summary\n\nPreset: ${preset.name}\nProject: ${cfg.projectName}\nObjective: ${cfg.objective}\nTimestamp: ${nowIso()}\n\n## What changed\n${pick.map(b=>`- ${b}`).join("\n")}\n\n## Notes\n- Keep artifacts small and reproducible.\n- Avoid storing secrets in logs.\n`;
+    }
+
+    function makeToolOutput(i){
+      const obj = {
+        run: i,
+        tools: [
+          { name: "search_web", input: { q: "anatomy of .claude folder" }, output: { hits: randInt(3,9) } },
+          { name: "write", input: { file: "index.html" }, output: { bytes: randInt(20000,80000) } }
+        ],
+        duration_ms: randInt(800, 6400),
+        createdAt: nowIso()
+      };
+      return JSON.stringify(obj, null, 2);
+    }
+
+    function makePrompt(i, cfg){
+      return `SYSTEM: ${cfg.systemNote}\n\nUSER: ${cfg.objective}\n\nASSISTANT: Plan the steps and save artifacts under .claude/ for reproducibility. (run=${i})\n`;
+    }
+
+    function makeLogs(i, preset){
+      const lines = [];
+      const steps = randInt(8, 22);
+      for(let s=1;s<=steps;s++){
+        const t = (Math.random() < preset.knobs.hygiene) ? "INFO" : (Math.random() < .3 ? "WARN" : "DEBUG");
+        const msg = shuffle([
+          "Generating spec",
+          "Creating file tree",
+          "Estimating token count",
+          "Applying retention rules",
+          "Redacting risky patterns",
+          "Building share bundle",
+          "Updating summary",
+          "Rendering UI",
+          "Validating export",
+          "Writing notes"
+        ])[0];
+        lines.push(`[${nowIso()}] ${t} run=${i} step=${s} ${msg}`);
+      }
+      return lines.join("\n") + "\n";
+    }
+
+    function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+    function shuffle(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function groupTree(files){
+      // Returns nested tree object for rendering
+      const root = { name:"/", type:"dir", children:{} };
+      for(const f of files){
+        const parts = f.path.split("/");
+        let node = root;
+        for(let i=0;i<parts.length;i++){
+          const p = parts[i];
+          const last = i === parts.length-1;
+          if(!node.children[p]) node.children[p] = { name:p, type: last ? "file" : "dir", children:{}, fileId: null };
+          node = node.children[p];
+          if(last){ node.type="file"; node.fileId = f.id; }
+        }
+      }
+      return root;
+    }
+
+    // ---------- Retention simulation ----------
+
+    function applyRetention(files, rules){
+      // Return new file list after applying retention and privacy.
+      let out = files.map(f => ({...f}));
+
+      const privacy = rules.privacyMode;
+      if(privacy === "paranoid"){
+        // Remove logs and prompts aggressively
+        out = out.filter(f => !(f.kind === "log" || f.kind === "prompt"));
+      }else if(privacy === "redact"){
+        out = out.map(f => {
+          if(f.kind === "log" || f.kind === "prompt" || f.kind === "tool-output"){
+            const red = redactText(f.content);
+            const nf = fileTemplate(f.path, f.kind, red);
+            nf.id = f.id; // keep identity
+            nf.updatedAt = nowIso();
+            nf.tags = (f.tags||[]).slice();
+            return nf;
+          }
+          return f;
+        });
+      }
+
+      const rr = rules.retentionRule;
+      const p = (rules.retentionParam||"").trim();
+
+      if(rr === "keep_all"){
+        // no-op
+      }else if(rr === "keep_last"){
+        const n = clamp(parseInt(p || "7", 10) || 7, 1, 50);
+        // Identify run numbers from path .claude/runs/run_XXX/
+        const runs = new Map();
+        for(const f of out){
+          const m = f.path.match(/\.claude\/runs\/run_(\d{3})\//);
+          if(m){
+            const rn = parseInt(m[1],10);
+            if(!runs.has(rn)) runs.set(rn, []);
+            runs.get(rn).push(f);
+          }
+        }
+        const sorted = Array.from(runs.keys()).sort((a,b)=>a-b);
+        const keep = new Set(sorted.slice(-n));
+        out = out.filter(f => {
+          const m = f.path.match(/\.claude\/runs\/run_(\d{3})\//);
+          if(!m) return true;
+          return keep.has(parseInt(m[1],10));
+        });
+      }else if(rr === "keep_by_size"){
+        const mb = clamp(parseFloat(p || "10") || 10, 1, 200);
+        const budget = mb * 1024 * 1024;
+        // Keep smallest/risk-reduced files first, drop big logs/tool outputs if needed.
+        out.sort((a,b)=>{
+          const ka = scoreKeep(a), kb = scoreKeep(b);
+          return kb - ka; // higher keep score first
+        });
+        let total = 0;
+        const kept = [];
+        for(const f of out){
+          if(total + f.bytes <= budget){
+            kept.push(f);
+            total += f.bytes;
+          }
+        }
+        out = kept;
+      }
+
+      // Recompute risk after removals/redaction
+      out = out.map(f => {
+        const nf = fileTemplate(f.path, f.kind, f.content);
+        nf.id = f.id;
+        nf.tags = (f.tags||[]).slice();
+        nf.updatedAt = f.updatedAt;
+        return nf;
+      });
+
+      return out;
+    }
+
+    function scoreKeep(file){
+      // Higher means more valuable to keep
+      let s = 0;
+      if(file.kind === "config") s += 90;
+      if(file.kind === "summary") s += 78;
+      if(file.kind === "memory") s += 70;
+      if(file.kind === "project") s += 68;
+      if(file.kind === "share") s += 55;
+      if(file.kind === "research") s += 40;
+      if(file.kind === "tool-output") s += 25;
+      if(file.kind === "prompt") s += 18;
+      if(file.kind === "log") s += 10;
+      // Penalize big + risky
+      s -= clamp(file.bytes / 2000, 0, 40);
+      s -= clamp(file.riskScore / 4, 0, 25);
+      return s;
+    }
+
+    // ---------- Bundling ----------
+
+    function makeBundle(){
+      const rules = state.config.rules;
+      const includes = rules.bundleIncludes;
+      const filtered = applyRetention(state.workspace.files, rules);
+
+      let pick = filtered;
+      if(includes === "summary_only"){
+        pick = filtered.filter(f => f.kind === "summary" || f.path.endsWith("config.json"));
+      }else if(includes === "essentials"){
+        pick = filtered.filter(f =>
+          f.path.endsWith(".claude/config.json") ||
+          f.kind === "summary" ||
+          f.kind === "memory" ||
+          (f.kind === "project" && /index\.html|README\.md/.test(f.path)) ||
+          f.kind === "share"
+        );
+      }
+
+      // Create compact payload: store only required fields
+      const files = pick.map(f => ({
+        path: f.path,
+        kind: f.kind,
+        updatedAt: f.updatedAt,
+        bytes: f.bytes,
+        tokens: f.tokens,
+        riskScore: f.riskScore,
+        riskHints: f.riskHints,
+        content: f.content
+      }));
+
+      const bundle = {
+        app: { name: "DotClaude Lab", version: "1.0" },
+        trend: state.trend,
+        createdAt: nowIso(),
+        config: {
+          preset: state.config.preset,
+          size: state.config.size,
+          projectName: state.config.projectName,
+          objective: state.config.objective,
+          systemNote: state.config.systemNote,
+          rules: { ...state.config.rules }
+        },
+        run: state.meta.lastRunAt ? { lastRunAt: state.meta.lastRunAt, runCount: state.workspace.runs.length } : null,
+        files
+      };
+
+      const json = JSON.stringify(bundle, null, 2);
+      const bytes = new Blob([json]).size;
+      const hash = fnv1a(json);
+
+      return { bundle, json, bytes, hash };
+    }
+
+    function downloadText(filename, text){
+      const blob = new Blob([text], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 500);
+    }
+
+    // ---------- Simulation ----------
+
+    function defaultEvents(){
+      return [
+        { id: uid(), t: "Collect context", detail: "Gather constraints (single-file, dark theme), plus the trend inspiration.", impact: { files:+2, tokens:+620, risk:+4 } },
+        { id: uid(), t: "Plan", detail: "Write a plan and store it under .claude/memory.", impact: { files:+1, tokens:+260, risk:+2 } },
+        { id: uid(), t: "Implement", detail: "Generate index.html and create run summaries.", impact: { files:+6, tokens:+1450, risk:+6 } },
+        { id: uid(), t: "Package", detail: "Create share bundle and apply retention rules.", impact: { files:+2, tokens:+420, risk:-3 } },
+      ];
+    }
+
+    function runSimulation(){
+      const cfg = state.config;
+      const preset = PRESETS[cfg.preset];
+      const size = SIZE_PRESETS[cfg.size];
+
+      const runId = state.workspace.runs.length + 1;
+      const runStamp = nowIso();
+      state.meta.lastRunAt = runStamp;
+
+      const events = state.simulation.events.length ? state.simulation.events : defaultEvents();
+
+      // Apply effects by generating a new run folder and maybe some extra artifacts.
+      const base = state.workspace.files.slice();
+
+      const runFolder = `.claude/runs/run_${String(runId).padStart(3,"0")}`;
+      base.push(fileTemplate(`${runFolder}/summary.md`, "summary", makeRunSummary(runId, preset, cfg)));
+
+      // Add event-driven logs and artifacts
+      let extraFiles = 0;
+      for(const ev of events){
+        extraFiles += Math.max(0, ev.impact.files);
+      }
+
+      // Adjust with preset knobs
+      const wantLogs = preset.knobs.logVerbosity;
+      const wantTools = preset.knobs.keepToolOutputs;
+      const wantPrompts = preset.knobs.keepPrompts;
+
+      if(Math.random() < wantLogs) base.push(fileTemplate(`${runFolder}/logs.txt`, "log", makeLogs(runId, preset)));
+      if(Math.random() < wantTools) base.push(fileTemplate(`${runFolder}/tool_output.json`, "tool-output", makeToolOutput(runId)));
+      if(Math.random() < wantPrompts) base.push(fileTemplate(`${runFolder}/prompt.txt`, "prompt", makePrompt(runId, cfg)));
+
+      // Add some synthetic extra artifacts based on curiosity
+      const curiosity = preset.knobs.curiosity;
+      const extraCount = clamp(Math.round(extraFiles * (0.6 + curiosity)), 2, 18);
+      for(let i=0;i<extraCount;i++){
+        const kind = weightedPick([
+          ["research", 0.22 + curiosity*0.2],
+          ["cache", 0.25],
+          ["meta", 0.15],
+          ["share", 0.20],
+          ["log", 0.18]
+        ]);
+        const p = randomArtifactPath(kind, runId, i);
+        base.push(fileTemplate(p, kind, randomArtifactContent(kind, cfg, runId)));
+      }
+
+      // Apply retention rules to simulate cleanup right after run.
+      const cleaned = applyRetention(base, cfg.rules);
+      state.workspace.files = dedupeByPath(cleaned);
+
+      state.workspace.runs.push({
+        id: runId,
+        at: runStamp,
+        preset: cfg.preset,
+        size: cfg.size,
+        events: events.map(e=>({t:e.t, impact:e.impact}))
+      });
+
+      // Mark selected file if missing
+      if(!state.ui.selectedFileId && state.workspace.files.length){
+        state.ui.selectedFileId = state.workspace.files[0].id;
+      }
+
+      // Update chip
+      $("#runChip").textContent = `Last run: ${runStamp}`;
+      $("#runChip").style.borderColor = "rgba(75,227,138,.35)";
+
+      toast("Simulation complete", "R");
+
+      renderAll();
+    }
+
+    function dedupeByPath(files){
+      const map = new Map();
+      for(const f of files){
+        if(!map.has(f.path)) map.set(f.path, f);
+        else{
+          // keep newest or bigger summary
+          const prev = map.get(f.path);
+          map.set(f.path, (f.updatedAt > prev.updatedAt) ? f : prev);
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    function weightedPick(pairs){
+      const total = pairs.reduce((s,[,w])=>s+w,0);
+      let r = Math.random() * total;
+      for(const [v,w] of pairs){
+        r -= w;
+        if(r <= 0) return v;
+      }
+      return pairs[pairs.length-1][0];
+    }
+
+    function randomArtifactPath(kind, runId, i){
+      const base = [
+        `.claude/cache/${kind}_${runId}_${i}.json`,
+        `.claude/notes/${kind}_note_${runId}_${i}.md`,
+        `.claude/share/${kind}_bundle_${runId}_${i}.json`,
+        `.claude/experiments/${kind}_exp_${runId}_${i}.txt`
+      ];
+      if(kind === "log") return `.claude/runs/run_${String(runId).padStart(3,"0")}/debug_${i}.log`;
+      if(kind === "meta") return `.claude/meta/${kind}_${runId}_${i}.md`;
+      if(kind === "cache") return `.claude/cache/${kind}_${runId}_${i}.json`;
+      if(kind === "research") return `.claude/notes/${kind}_${runId}_${i}.md`;
+      if(kind === "share") return `.claude/share/snapshot_${runId}_${i}.json`;
+      return base[randInt(0, base.length-1)];
+    }
+
+    function randomArtifactContent(kind, cfg, runId){
+      if(kind === "cache"){
+        return JSON.stringify({
+          run: runId,
+          derived: "token_estimates",
+          estimate: randInt(1200, 7800),
+          strategy: shuffle(["chars_per_token","model_metadata","heuristic"])[0]
+        }, null, 2);
+      }
+      if(kind === "share"){
+        return JSON.stringify({
+          run: runId,
+          type: "snapshot",
+          note: "Generated by DotClaude Lab",
+          createdAt: nowIso(),
+          include: cfg.rules.bundleIncludes
+        }, null, 2);
+      }
+      if(kind === "meta"){
+        return `# Metadata\nrun=${runId}\nproject=${cfg.projectName}\nobjective=${cfg.objective}\n`;
+      }
+      if(kind === "research"){
+        return `# Research note\n\n- Hypothesis: structured summaries reduce retention risk.\n- Experiment: compare keep_last vs keep_by_size.\n- Observation: logs dominate size; prompts dominate privacy risk.\n\n(run=${runId})\n`;
+      }
+      if(kind === "log"){
+        return makeLogs(runId, PRESETS[cfg.preset]);
+      }
+      return `run=${runId}\n`;
+    }
+
+    // ---------- UI rendering ----------
+
+    function renderTree(){
+      const container = $("#tree");
+      container.innerHTML = "";
+
+      const files = state.workspace.files;
+      const tree = groupTree(files);
+
+      function renderNode(node, depth, pathPrefix){
+        const entries = Object.values(node.children);
+        entries.sort((a,b)=>{
+          if(a.type !== b.type) return a.type === "dir" ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        for(const child of entries){
+          const fullPath = pathPrefix ? `${pathPrefix}/${child.name}` : child.name;
+          if(child.type === "dir"){
+            const el = document.createElement("div");
+            el.className = "node";
+            el.style.marginLeft = `${depth*10}px`;
+            el.innerHTML = `
+              <span class="dot warn"></span>
+              <span style="flex:1">${escapeHtml(child.name)}/</span>
+              <span class="badge">dir</span>
+            `;
+            el.addEventListener("click", ()=>{
+              // Expand/collapse by toggling hidden on descendants.
+              const open = el.getAttribute("data-open") !== "0";
+              el.setAttribute("data-open", open ? "0" : "1");
+              el.querySelector(".dot").className = "dot " + (open ? "warn" : "good");
+              toggleDescendants(el, open);
+            });
+            container.appendChild(el);
+            renderNode(child, depth+1, fullPath);
+          }else{
+            const f = files.find(x=>x.id===child.fileId);
+            const riskClass = f.riskScore > 55 ? "bad" : (f.riskScore > 18 ? "warn" : "good");
+            const el = document.createElement("div");
+            el.className = "node" + (state.ui.selectedFileId === child.fileId ? " active" : "");
+            el.style.marginLeft = `${depth*10}px`;
+            el.innerHTML = `
+              <span class="dot ${riskClass}"></span>
+              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escapeHtml(child.name)}</span>
+              <span class="badge">${escapeHtml(f.kind)}</span>
+            `;
+            el.addEventListener("click", ()=>selectFile(child.fileId));
+            container.appendChild(el);
+          }
+        }
+      }
+
+      renderNode(tree, 0, "");
+
+      // Initially collapse .claude/ a bit for readability
+      collapseHeuristic(container);
+    }
+
+    function collapseHeuristic(container){
+      const nodes = $$(".node", container);
+      for(const n of nodes){
+        if(n.textContent.trim().startsWith(".claude/") || n.textContent.trim() === ".claude/"){
+          // leave open
+        }
+      }
+    }
+
+    function toggleDescendants(dirEl, hide){
+      // Very simple heuristic: hide until next sibling with <= margin-left.
+      const margin = parseInt(dirEl.style.marginLeft||"0",10);
+      let cur = dirEl.nextElementSibling;
+      while(cur){
+        const m = parseInt(cur.style.marginLeft||"0",10);
+        if(m <= margin) break;
+        if(hide){
+          cur.style.display = "none";
+        }else{
+          cur.style.display = "";
+        }
+        cur = cur.nextElementSibling;
+      }
+    }
+
+    function selectFile(fileId){
+      state.ui.selectedFileId = fileId;
+      renderTree();
+      renderInspector();
+    }
+
+    function renderInspector(){
+      const f = state.workspace.files.find(x=>x.id===state.ui.selectedFileId);
+      if(!f){
+        $("#filePath").textContent = "Select a file…";
+        $("#codeView").textContent = "";
+        return;
+      }
+      $("#filePath").textContent = f.path;
+      $("#codeView").textContent = f.content;
+    }
+
+    function renderKPIs(){
+      const files = state.workspace.files;
+      const totalTokens = files.reduce((s,f)=>s+f.tokens,0);
+      const risk = aggregateRisk(files);
+
+      $("#kpiFiles").textContent = String(files.length);
+      $("#kpiTokens").textContent = String(totalTokens.toLocaleString());
+
+      const label = risk.label;
+      $("#kpiRisk").textContent = label;
+      const el = $("#kpiRisk");
+      el.style.color = risk.color;
+    }
+
+    function aggregateRisk(files){
+      if(!files.length) return {score:0, label:"Low", color:"rgba(75,227,138,.95)"};
+      const avg = files.reduce((s,f)=>s+f.riskScore,0) / files.length;
+      const heavy = files.filter(f=>f.riskScore>55).length;
+      const logs = files.filter(f=>f.kind==="log").length;
+      let score = avg + heavy*4 + logs*0.6;
+      score = clamp(score, 0, 100);
+      if(score < 22) return {score, label:"Low", color:"rgba(75,227,138,.95)"};
+      if(score < 48) return {score, label:"Medium", color:"rgba(255,204,102,.95)"};
+      return {score, label:"High", color:"rgba(255,85,119,.95)"};
+    }
+
+    function renderTimeline(){
+      const container = $("#timeline");
+      container.innerHTML = "";
+      const events = state.simulation.events.length ? state.simulation.events : defaultEvents();
+      const totalRisk = events.reduce((s,e)=>s+e.impact.risk,0);
+      const totalFiles = events.reduce((s,e)=>s+e.impact.files,0);
+      const totalTokens = events.reduce((s,e)=>s+e.impact.tokens,0);
+
+      for(const ev of events){
+        const el = document.createElement("div");
+        el.className = "event";
+        const p = Math.max(0, ev.impact.risk);
+        const w = clamp(20 + p*1.4, 10, 100);
+        el.innerHTML = `
+          <div class="top">
+            <div>
+              <div class="name">${escapeHtml(ev.t)}</div>
+              <div class="meta">files ${fmtSigned(ev.impact.files)} · tokens ${fmtSigned(ev.impact.tokens)} · risk ${fmtSigned(ev.impact.risk)}</div>
+            </div>
+            <div class="row">
+              <button class="btn" data-act="edit">Edit</button>
+              <button class="btn danger" data-act="del">Delete</button>
+            </div>
+          </div>
+          <div class="body">${escapeHtml(ev.detail)}</div>
+          <div class="mini-bar"><i style="width:${w}%"></i></div>
+        `;
+
+        $("[data-act='del']", el).addEventListener("click", ()=>{
+          state.simulation.events = events.filter(x=>x.id!==ev.id);
+          renderTimeline();
+        });
+
+        $("[data-act='edit']", el).addEventListener("click", ()=>{
+          openEventEditor(ev);
+        });
+
+        container.appendChild(el);
+      }
+
+      // Add a summary row
+      const sum = document.createElement("div");
+      sum.className = "event";
+      sum.style.borderColor = "rgba(124,92,255,.25)";
+      sum.style.background = "rgba(124,92,255,.10)";
+      sum.innerHTML = `
+        <div class="top">
+          <div>
+            <div class="name">Projected impact</div>
+            <div class="meta">files ${fmtSigned(totalFiles)} · tokens ${fmtSigned(totalTokens)} · risk ${fmtSigned(totalRisk)}</div>
+          </div>
+          <span class="badge">preview</span>
+        </div>
+        <div class="body">This is a rough projection. Preset knobs and retention rules may shrink or expand artifacts.</div>
+      `;
+      container.appendChild(sum);
+    }
+
+    function fmtSigned(n){
+      const s = n >= 0 ? "+" : "";
+      return s + String(n);
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function renderBundle(){
+      const b = state.ui.lastBundle;
+      if(!b){
+        $("#bundleView").textContent = "Click Generate to create bundle.json";
+        $("#bundleSize").textContent = "0 B";
+        $("#bundleHash").textContent = "hash: —";
+        return;
+      }
+      $("#bundleView").textContent = b.json;
+      $("#bundleSize").textContent = formatBytes(b.bytes);
+      $("#bundleHash").textContent = "hash: " + b.hash;
+    }
+
+    function renderPreset(){
+      const p = PRESETS[state.config.preset];
+      $("#presetDesc").textContent = p.desc;
+    }
+
+    function renderRules(){
+      const r = state.config.rules;
+      $("#retentionRule").value = r.retentionRule;
+      $("#retentionParam").value = r.retentionParam;
+      $("#privacyMode").value = r.privacyMode;
+      $("#bundleIncludes").value = r.bundleIncludes;
+    }
+
+    function renderAll(){
+      renderTree();
+      renderInspector();
+      renderKPIs();
+      renderTimeline();
+      renderBundle();
+      renderPreset();
+    }
+
+    // ---------- Event editor ----------
+
+    function openEventEditor(ev){
+      const modal = $("#modal");
+      // Reuse modal: inject a small editor UI
+      const sheet = $(".sheet .bd", modal);
+      const prev = sheet.innerHTML;
+
+      sheet.innerHTML = `
+        <div class="split">
+          <div>
+            <label>Event name</label>
+            <input type="text" id="evName" value="${escapeHtml(ev.t)}" />
+          </div>
+          <div>
+            <label>Impact (files, tokens, risk)</label>
+            <div class="split" style="grid-template-columns: 1fr 1fr 1fr; gap: 10px">
+              <input type="text" id="evFiles" value="${ev.impact.files}" />
+              <input type="text" id="evTokens" value="${ev.impact.tokens}" />
+              <input type="text" id="evRisk" value="${ev.impact.risk}" />
+            </div>
+            <div class="small" style="margin-top:6px">Negative risk can represent cleanup/redaction.</div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label>Details</label>
+          <textarea id="evDetail">${escapeHtml(ev.detail)}</textarea>
+        </div>
+        <div style="margin-top:12px" class="row">
+          <button class="btn primary" id="evSave">Save</button>
+          <button class="btn" id="evCancel">Cancel</button>
+          <span class="small">Press Escape to close.</span>
+        </div>
+      `;
+
+      // Update header title
+      $(".sheet .hd .title", modal).textContent = "Edit timeline event";
+
+      showModal();
+
+      $("#evCancel").addEventListener("click", ()=>{
+        sheet.innerHTML = prev;
+        $(".sheet .hd .title", modal).textContent = "About DotClaude Lab";
+        renderAll();
+        hideModal();
+      });
+
+      $("#evSave").addEventListener("click", ()=>{
+        const name = $("#evName").value.trim() || "Untitled";
+        const detail = $("#evDetail").value.trim() || "";
+        const files = parseInt($("#evFiles").value, 10) || 0;
+        const tokens = parseInt($("#evTokens").value, 10) || 0;
+        const risk = parseInt($("#evRisk").value, 10) || 0;
+
+        ev.t = name;
+        ev.detail = detail;
+        ev.impact = { files, tokens, risk };
+
+        // persist
+        state.simulation.events = (state.simulation.events.length ? state.simulation.events : defaultEvents()).map(x=>x.id===ev.id ? ev : x);
+
+        sheet.innerHTML = prev;
+        $(".sheet .hd .title", modal).textContent = "About DotClaude Lab";
+        renderTimeline();
+        hideModal();
+        toast("Event updated", "OK");
+      });
+
+      // Escape key handler is global
+    }
+
+    // ---------- Interactions ----------
+
+    function bindUI(){
+      // Tabs
+      $$(".tab").forEach(t => {
+        t.addEventListener("click", ()=>{
+          $$(".tab").forEach(x=>x.classList.remove("active"));
+          t.classList.add("active");
+          const id = t.getAttribute("data-tab");
+          state.ui.activeTab = id;
+          $$(".panel").forEach(p=>{
+            p.style.display = p.getAttribute("data-panel") === id ? "" : "none";
+          });
+        });
+      });
+
+      // Preset controls
+      $("#presetSelect").addEventListener("change", (e)=>{
+        state.config.preset = e.target.value;
+        // rebuild workspace to reflect major changes
+        state.workspace.files = makeBaseWorkspace();
+        state.workspace.runs = [];
+        state.meta.lastRunAt = null;
+        $("#runChip").textContent = "No run yet";
+        state.ui.lastBundle = null;
+        renderAll();
+        toast("Preset applied", "OK");
+      });
+
+      $("#sizeSelect").addEventListener("change", (e)=>{
+        state.config.size = e.target.value;
+        state.workspace.files = makeBaseWorkspace();
+        state.workspace.runs = [];
+        state.meta.lastRunAt = null;
+        $("#runChip").textContent = "No run yet";
+        state.ui.lastBundle = null;
+        renderAll();
+        toast("Workspace resized", "OK");
+      });
+
+      $("#projectName").addEventListener("input", (e)=>{ state.config.projectName = e.target.value.trim() || "project"; });
+      $("#objective").addEventListener("input", (e)=>{ state.config.objective = e.target.value; });
+      $("#systemNote").addEventListener("input", (e)=>{ state.config.systemNote = e.target.value; });
+
+      // Rules
+      $("#btnApplyRules").addEventListener("click", ()=>{
+        state.config.rules.retentionRule = $("#retentionRule").value;
+        state.config.rules.retentionParam = $("#retentionParam").value;
+        state.config.rules.privacyMode = $("#privacyMode").value;
+        state.config.rules.bundleIncludes = $("#bundleIncludes").value;
+
+        const before = state.workspace.files.length;
+        const afterFiles = applyRetention(state.workspace.files, state.config.rules);
+        state.workspace.files = dedupeByPath(afterFiles);
+        const after = state.workspace.files.length;
+
+        $("#rulesStatus").textContent = `Applied. Files: ${before} → ${after}.`;
+        state.ui.lastBundle = null;
+        renderAll();
+        toast("Rules applied", "OK");
+      });
+
+      // Run / export / share
+      $("#btnRun").addEventListener("click", runSimulation);
+      $("#btnGenerateBundle").addEventListener("click", ()=>{
+        state.ui.lastBundle = makeBundle();
+        renderBundle();
+        toast("Bundle generated", "OK");
+      });
+
+      $("#btnDownload").addEventListener("click", ()=>{
+        if(!state.ui.lastBundle) state.ui.lastBundle = makeBundle();
+        downloadText("bundle.json", state.ui.lastBundle.json);
+        toast("Downloaded bundle.json", "OK");
+      });
+
+      $("#btnExport").addEventListener("click", ()=>{
+        const b = makeBundle();
+        downloadText(`dotclaude_bundle_${b.hash}.json`, b.json);
+        toast("Exported bundle", "E");
+      });
+
+      $("#btnShare").addEventListener("click", async ()=>{
+        // Encode just enough to reproduce: config + files (already filtered by bundle settings)
+        const b = makeBundle();
+        const shareObj = { kind:"dotclaude_share", v:1, bundle: b.bundle };
+        const payload = await encodeState(shareObj);
+        location.hash = payload;
+        const ok = await copyText(location.href);
+        toast(ok ? "Share link copied" : "Share link ready", "S");
+      });
+
+      // New file
+      $("#btnNewFile").addEventListener("click", ()=>{
+        const name = prompt("Path for new file (relative):", `.claude/notes/new_${Date.now()}.md`);
+        if(!name) return;
+        const content = prompt("Initial content:", "# New note\n\n") ?? "";
+        const f = fileTemplate(name.trim(), "research", content);
+        state.workspace.files.push(f);
+        state.ui.selectedFileId = f.id;
+        renderAll();
+        toast("File added", "OK");
+      });
+
+      // Copy
+      $("#btnCopy").addEventListener("click", async ()=>{
+        const f = state.workspace.files.find(x=>x.id===state.ui.selectedFileId);
+        if(!f) return;
+        const ok = await copyText(f.content);
+        toast(ok ? "Copied" : "Copy failed", "OK");
+      });
+
+      // Mutate
+      $("#btnMutate").addEventListener("click", ()=>{
+        const f = state.workspace.files.find(x=>x.id===state.ui.selectedFileId);
+        if(!f) return;
+        const mode = prompt("Mutate mode: append | inject-secret | redact", "append");
+        if(!mode) return;
+        if(mode === "append"){
+          f.content += `\n# update\n- mutated at ${nowIso()}\n`;
+        }else if(mode === "inject-secret"){
+          f.content += `\nAPI_KEY=sk-${uid()}${uid()}\n`;
+        }else if(mode === "redact"){
+          f.content = redactText(f.content);
+        }
+        const nf = fileTemplate(f.path, f.kind, f.content);
+        nf.id = f.id;
+        nf.tags = (f.tags||[]).concat(["mutated"]);
+        state.workspace.files = state.workspace.files.map(x=>x.id===f.id ? nf : x);
+        renderAll();
+        toast("Mutated", "OK");
+      });
+
+      // Timeline editing
+      $("#btnAddEvent").addEventListener("click", ()=>{
+        const e = { id: uid(), t: "New event", detail: "Describe what happens.", impact: { files:+1, tokens:+100, risk:+1 } };
+        const cur = state.simulation.events.length ? state.simulation.events : defaultEvents();
+        state.simulation.events = cur.concat([e]);
+        renderTimeline();
+        toast("Event added", "OK");
+      });
+
+      $("#btnClearEvents").addEventListener("click", ()=>{
+        if(!confirm("Clear custom events and revert to defaults?")) return;
+        state.simulation.events = [];
+        renderTimeline();
+        toast("Events reset", "OK");
+      });
+
+      // About modal
+      $("#btnOpenAbout").addEventListener("click", showModal);
+      $("#btnCloseModal").addEventListener("click", hideModal);
+      $("#modal").addEventListener("click", (e)=>{
+        if(e.target === $("#modal")) hideModal();
+      });
+
+      // Keyboard
+      window.addEventListener("keydown", (e)=>{
+        if(e.key === "?" && !e.metaKey && !e.ctrlKey){
+          e.preventDefault();
+          showModal();
+        }
+        if(e.key === "Escape") hideModal();
+        if(e.key.toLowerCase() === "r" && !(e.ctrlKey||e.metaKey)) runSimulation();
+        if(e.key.toLowerCase() === "e" && !(e.ctrlKey||e.metaKey)) $("#btnExport").click();
+        if(e.key.toLowerCase() === "s" && !(e.ctrlKey||e.metaKey)) $("#btnShare").click();
+        if(e.key === "/" && !(e.ctrlKey||e.metaKey)){
+          e.preventDefault();
+          // focus a pseudo search by selecting the first input in preset panel
+          $("#presetSelect").focus();
+          toast("Focused preset", "/");
+        }
+      });
+    }
+
+    function showModal(){ $("#modal").classList.add("show"); }
+    function hideModal(){ $("#modal").classList.remove("show"); }
+
+    // ---------- Import from share hash ----------
+
+    async function maybeLoadFromHash(){
+      const h = (location.hash || "").slice(1);
+      if(!h) return false;
+      const decoded = await decodeState(h);
+      if(!decoded || decoded.kind !== "dotclaude_share") return false;
+
+      const bundle = decoded.bundle;
+      // Restore config and files from bundle
+      if(bundle && bundle.config){
+        state.config.preset = bundle.config.preset || state.config.preset;
+        state.config.size = bundle.config.size || state.config.size;
+        state.config.projectName = bundle.config.projectName || state.config.projectName;
+        state.config.objective = bundle.config.objective || state.config.objective;
+        state.config.systemNote = bundle.config.systemNote || state.config.systemNote;
+        state.config.rules = { ...state.config.rules, ...(bundle.config.rules || {}) };
+
+        // Update controls
+        $("#presetSelect").value = state.config.preset;
+        $("#sizeSelect").value = state.config.size;
+        $("#projectName").value = state.config.projectName;
+        $("#objective").value = state.config.objective;
+        $("#systemNote").value = state.config.systemNote;
+        renderRules();
+      }
+
+      if(bundle && Array.isArray(bundle.files)){
+        state.workspace.files = bundle.files.map(f => fileTemplate(f.path, f.kind, f.content || ""));
+        state.ui.selectedFileId = state.workspace.files[0]?.id || null;
+        state.ui.lastBundle = null;
+      }
+
+      toast("Loaded shared snapshot", "OK");
+      return true;
+    }
+
+    // ---------- Boot ----------
+
+    function init(){
+      // init config controls
+      $("#presetSelect").value = state.config.preset;
+      $("#sizeSelect").value = state.config.size;
+      $("#projectName").value = state.config.projectName;
+      $("#objective").value = state.config.objective;
+      $("#systemNote").value = state.config.systemNote;
+      renderRules();
+
+      // Build initial workspace
+      state.workspace.files = makeBaseWorkspace();
+      state.ui.selectedFileId = state.workspace.files[0]?.id || null;
+
+      bindUI();
+
+      // Attempt import from share
+      maybeLoadFromHash().then(()=>{
+        renderAll();
+      });
+
+      // Expose for debugging
+      window.DotClaudeLab = { state, makeBundle, applyRetention };
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
